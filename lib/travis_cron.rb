@@ -25,9 +25,8 @@ module TravisCron
 
       config.fetch("projects").each do |project|
         project["token"] ||= config["token"] # support default token
-        project["branch"] ||= "master"
         result = restart_build(project)
-        puts "#{project["url"]} - #{project["branch"]}: #{result}"
+        puts "#{project["url"]} #{project["branch"] && '-' + project["branch"]}: #{result}"
       end
     end
 
@@ -38,10 +37,10 @@ module TravisCron
 
       scheme, _, host, path = project.fetch("url").split("/", 4)
       base = "#{scheme}//api.#{host.split(".").last(2).join(".")}"
-      branch = project.fetch("branch")
+      branch = project["branch"]
 
       result = RestClient.get("#{base}/repos/#{path}/builds", auth)
-      build = JSON.load(result).detect { |p| p["branch"] == branch }
+      build = JSON.load(result).detect { |p| branch.nil? || p["branch"] == branch }
       raise "No build found for branch #{branch}" unless build
       last_build_id = build["id"]
 
