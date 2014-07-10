@@ -6,6 +6,7 @@ test:
   projects:
    - url: https://travis-ci.org/some-public-token/travis-cron-test
      token: mi0l8uQlX3U5EHbE0ym31g
+     # optional; if missing, the latest build will be used
      branch: master
 
 development:
