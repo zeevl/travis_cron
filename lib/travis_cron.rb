@@ -1,5 +1,8 @@
 require 'rest_client'
 require 'json'
+require 'sentry-raven'
+
+
 
 module TravisCron
   class << self
@@ -19,14 +22,13 @@ module TravisCron
     end
 
     def run(config)
-      #AirbrakeAPI.account = config.fetch(:subdomain)
-      #AirbrakeAPI.auth_token = config.fetch(:auth_token)
-      #AirbrakeAPI.secure = true
-
-      config.fetch("projects").each do |project|
-        project["token"] ||= config["token"] # support default token
-        result = restart_build(project)
-        puts "#{project["url"]} #{project["branch"] && '-' + project["branch"]}: #{result}"
+      Raven.configure { |c| c.dsn = config['sentry_dsn'] } if config['sentry_dsn']
+      Raven.capture do
+        config.fetch("projects").each do |project|
+          project["token"] ||= config["token"] # support default token
+          result = restart_build(project)
+          puts "#{project["url"]} #{project["branch"] && '-' + project["branch"]}: #{result}"
+        end
       end
     end
 
@@ -46,7 +48,10 @@ module TravisCron
 
       result = RestClient.post("#{base}/requests", {"build_id" => last_build_id}, auth)
       result = JSON.load(result)
-      !result["flash"][0]["error"] && result['result']
+
+      raise "Failed to restart build! #{result["flash"][0]["error"]}}" unless result['result']
+
+      result['result']
     end
   end
 end
